@@ -4,12 +4,12 @@ import { Searchbar } from './Searchbar/Searchbar.jsx';
 import { ImageGallery } from './ImageGallery/ImageGallery.jsx';
 import { Button } from './Button/Button.jsx';
 import { Modal } from './Modal/Modal.jsx';
-import { ColorRing } from  'react-loader-spinner';
-let page = 1;
+import { ColorRing } from 'react-loader-spinner';
 
 export class App extends React.Component {
   state = {
     searchQuery: '',
+    page: 1,
     searchResult: [],
     isModalOpen: false,
     loading: false,
@@ -30,35 +30,39 @@ export class App extends React.Component {
 
   onSubmit = event => {
     event.preventDefault();
+     this.setState({page: 1, loading: true})
     const searchQuery = event.currentTarget.elements.searchQuery.value;
     this.setState({ searchQuery: searchQuery });
   };
 
   async componentDidUpdate(prevProps, prevState) {
     if (this.state.searchQuery !== prevState.searchQuery) {
-      page = 1;
       try {
-        const allImages = await getImagesByQuery(this.state.searchQuery, page);
-      this.setState({ searchResult: allImages.hits, loading: true });
+        const allImages = await getImagesByQuery(this.state.searchQuery, this.state.page);
+        this.setState({ searchResult: allImages.hits });
       } catch (error) {
-        console.log(error)
+        console.log(error);
       } finally {
-        this.setState({loading: false });
+        this.setState({ loading: false });
       }
-      
+    }
+
+    if (this.state.page !== prevState.page) {
+      try {
+        const allImages = await getImagesByQuery(this.state.searchQuery, this.state.page);
+        this.setState(prevState => ({
+          searchResult: [...prevState.searchResult, ...allImages.hits],
+        }));
+      } catch (error) {
+        console.log(error);
+      } finally {
+        this.setState({ loading: false });
+      }
     }
   }
 
   addMoreImages = async () => {
-    page += 1;
-    try {
-      const allImages = await getImagesByQuery(this.state.searchQuery, page);
-      this.setState(prevState => ({
-        searchResult: [...prevState.searchResult, ...allImages.hits],
-      }));
-    } catch (error) {
-      console.log(error);
-    }
+    this.setState(prevState =>({page: prevState.page + 1}));
   };
 
   openModal = imgUrl => {
